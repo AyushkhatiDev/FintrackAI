@@ -1,0 +1,371 @@
+openapi: 3.0.0
+info:
+  title: Finance Tracker API
+  description: API documentation for the Finance Tracker application
+  version: 1.0.0
+  contact:
+    email: support@financetracker.com
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+  - url: https://api.financetracker.com/api
+    description: Production server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error:
+          type: string
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+        createdAt:
+          type: string
+          format: date-time
+
+    Expense:
+      type: object
+      properties:
+        _id:
+          type: string
+        amount:
+          type: number
+        description:
+          type: string
+        category:
+          type: string
+        date:
+          type: string
+          format: date-time
+        user:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Budget:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        user:
+          type: string
+
+    Category:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [expense, income]
+        icon:
+          type: string
+        color:
+          type: string
+        isDefault:
+          type: boolean
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        201:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+        400:
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+        401:
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /expenses:
+    get:
+      tags:
+        - Expenses
+      summary: Get all expenses
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: category
+          schema:
+            type: string
+      responses:
+        200:
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  count:
+                    type: integer
+                  pagination:
+                    type: object
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Expense'
+        401:
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags:
+        - Expenses
+      summary: Create new expense
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - description
+                - category
+                - date
+              properties:
+                amount:
+                  type: number
+                description:
+                  type: string
+                category:
+                  type: string
+                date:
+                  type: string
+                  format: date-time
+      responses:
+        201:
+          description: Expense created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Expense'
+
+  /budgets:
+    get:
+      tags:
+        - Budgets
+      summary: Get all budgets
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of budgets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Budget'
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+
+  /insights/spending-patterns:
+    get:
+      tags:
+        - Insights
+      summary: Get spending patterns analysis
+      security:
+        - BearerAuth: []
+      responses:
+        200:
+          description: Spending patterns analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      monthlyTrends:
+                        type: object
+                      topCategories:
+                        type: array
+                      recommendations:
+                        type: array
+
+tags:
+  - name: Authentication
+    description: Authentication endpoints
+  - name: Expenses
+    description: Expense management endpoints
+  - name: Budgets
+    description: Budget management endpoints
+  - name: Categories
+    description: Category management endpoints
+  - name: Insights
+    description: Financial insights and analysis endpoints 
